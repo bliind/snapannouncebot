@@ -46,10 +46,14 @@ async def on_message(message):
                 if output_channel.type == discord.ChannelType.forum:
                     title = actual_content.splitlines()[0]
                     actual_content = actual_content.replace(title, '').strip()
-                    if await output_channel.create_thread(name=title, files=files, content=actual_content):
+                    thread = await output_channel.create_thread(name=title, files=files, content=actual_content)
+                    if thread:
+                        await message.channel.send(thread.message.jump_url)
                         await message.add_reaction("✅")
                 else:
-                    if await output_channel.send(actual_content, files=files):
+                    sent = await output_channel.send(actual_content, files=files)
+                    if sent:
+                        await message.channel.send(sent.jump_url)
                         await message.add_reaction("✅")
             else:
                 await message.channel.send('No channel specified')
