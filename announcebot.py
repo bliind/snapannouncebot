@@ -11,6 +11,9 @@ class PostModal(discord.ui.Modal, title='Post Where?'):
 
     channel = discord.ui.TextInput(label='Channel')
     async def on_submit(self, interaction: discord.Interaction):
+        if interaction.user.id not in config.allowed_users:
+            await interaction.response.send_message("You can't use this", ephemeral=True)
+
         message = self.the_message
 
         guild = [g for g in bot.guilds if g.id == config.server][0]
