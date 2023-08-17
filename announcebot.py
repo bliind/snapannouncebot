@@ -16,7 +16,7 @@ class PostView(discord.ui.View):
         for child in self.children:
             child.disabled = True
 
-    @discord.ui.select(cls=discord.ui.ChannelSelect, custom_id='channel', channel_types=[discord.ChannelType.text, discord.ChannelType.forum])
+    @discord.ui.select(cls=discord.ui.ChannelSelect, custom_id='channel', channel_types=[discord.ChannelType.text, discord.ChannelType.forum, discord.ChannelType.news])
     async def _channel(self, interaction: discord.Interaction, select: discord.ui.ChannelSelect):
         self.channel = select.values[0].name
         await interaction.response.defer()
