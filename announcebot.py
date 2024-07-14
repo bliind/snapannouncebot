@@ -4,6 +4,8 @@ import os
 import datetime
 import announcedb
 from discord import app_commands
+from discord.ext import commands
+from Survey import Survey
 
 ##
 class PostView(discord.ui.View):
@@ -110,23 +112,26 @@ def load_config():
 env = os.getenv('ANNOUNCEBOT_ENV')
 load_config()
 
-class MyClient(discord.Client):
+class MyClient(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        super().__init__(intents=intents)
+        super().__init__(command_prefix='>', intents=intents)
         self.synced = False
     
     async def on_ready(self):
         print(f"{config.env.upper()} ANNOUNCEBOT is ready for duty")
         if not self.synced:
-            await tree.sync(guild=discord.Object(id=config.server))
+            await self.tree.sync(guild=discord.Object(id=config.server))
             self.synced = True
 
 bot = MyClient()
-tree = app_commands.CommandTree(bot)
 
-@tree.context_menu(name='Post Announcement', guild=discord.Object(id=config.server))
+async def setup_hook():
+    await bot.add_cog(Survey(bot, config))
+bot.setup_hook = setup_hook
+
+@bot.tree.context_menu(name='Post Announcement', guild=discord.Object(id=config.server))
 async def post_announcement_command(interaction, message: discord.Message):
     view = PostView(timeout=30)
     await interaction.response.send_message(message.content.splitlines()[0] + '...', view=view)
@@ -149,17 +154,26 @@ async def post_announcement_command(interaction, message: discord.Message):
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=thread.message.jump_url))
                     await message.add_reaction("✅")
             else:
-                sent = await channel.send(message.content, files=files)
-                if sent:
+                try:
+                    sent = await channel.send(message.content, files=files)
                     announcedb.add_post(channel.name, message.content, sent.jump_url, int(round(sent.created_at.timestamp())))
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=sent.jump_url))
                     await message.add_reaction("✅")
+                except Exception as e:
+                    print('Failed to post announcement:')
+                    print(e)
+                    if 'Must be 2000 or fewer' in str(e):
+                        await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description='Message too long - 2000 characters max'))
+                    else:
+                        await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description='Unknown error'))
+
+
         else:
             await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description='No channel selected'))
     else:
         await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description='Cancelled'))
 
-@tree.context_menu(name='Edit Announcement', guild=discord.Object(id=config.server))
+@bot.tree.context_menu(name='Edit Announcement', guild=discord.Object(id=config.server))
 async def edit_announcement_command(interaction: discord.Interaction, message: discord.Message):
     options = []
     for post in announcedb.get_last_posts():
