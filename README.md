@@ -9,3 +9,20 @@ CREATE TABLE posts(
     datestamp TEXT
 );
 ```
+
+```sql
+CREATE TABLE survey(
+    datestamp INT,
+    channel_id INT,
+    message_id INT,
+    expires INT
+);
+
+CREATE TABLE survey_response(
+    datestamp INT,
+    channel_id INT,
+    message_id INT,
+    user_id INT,
+    response TEXT
+);
+```
