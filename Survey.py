@@ -96,7 +96,7 @@ class Survey(commands.Cog):
 
         message += '```\n'
         for response, count in responses.items():
-            message += f'{(response + ':').ljust(22)} {count}\n'
+            message += f'{(response + ":").ljust(22)} {count}\n'
         message += '```'
 
         embed = self.make_embed('blurple', message, 'Survey Results')
