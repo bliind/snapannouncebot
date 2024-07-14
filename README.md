@@ -1,5 +1,6 @@
 # snapannouncebot
 
+announcebot.db
 ```sql
 CREATE TABLE posts(
     id TEXT PRIMARY KEY NOT NULL,
@@ -10,6 +11,7 @@ CREATE TABLE posts(
 );
 ```
 
+survey.db
 ```sql
 CREATE TABLE survey(
     datestamp INT,
