@@ -1,12 +1,12 @@
 import aiosqlite
 
-async def create_survey(datestamp: int, channel_id: int, message_id: int, expires: int):
+async def create_survey(datestamp: int, channel_id: int, message_id: int, expires: int, subject: str):
     query = '''
         INSERT INTO `survey`
-        (datestamp, channel_id, message_id, expires)
-        VALUES (?, ?, ?, ?)
+        (datestamp, channel_id, message_id, expires, subject)
+        VALUES (?, ?, ?, ?, ?)
     '''
-    bind = (datestamp, channel_id, message_id, expires)
+    bind = (datestamp, channel_id, message_id, expires, subject)
 
     try:
         async with aiosqlite.connect('survey.db') as db:
@@ -40,7 +40,7 @@ async def list_surveys():
     try:
         async with aiosqlite.connect('survey.db') as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute('SELECT * FROM survey')
+            cursor = await db.execute('SELECT * FROM survey ORDER BY datestamp DESC')
             rows = await cursor.fetchall()
             await cursor.close()
             return rows
@@ -49,17 +49,16 @@ async def list_surveys():
         print(e)
         return False
 
-async def get_results(channel_id: int, message_id: int):
+async def get_results(message_id: int):
     query = '''
         SELECT
             COUNT(response) AS count,
             response
         FROM survey_response
-        WHERE channel_id = ?
-        AND message_id = ?
+        WHERE message_id = ?
         GROUP BY response
     '''
-    bind = (channel_id, message_id)
+    bind = (message_id,)
     try:
         async with aiosqlite.connect('survey.db') as db:
             db.row_factory = aiosqlite.Row
@@ -69,7 +68,7 @@ async def get_results(channel_id: int, message_id: int):
             return rows
     except Exception as e:
         print('Failed to get survey results:')
-        print(e, channel_id, message_id)
+        print(e, message_id)
         return False
 
 async def get_latest_survey():
