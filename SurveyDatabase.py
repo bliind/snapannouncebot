@@ -86,6 +86,20 @@ async def get_latest_survey():
         print(e)
         return False
 
+async def get_recent_surveys():
+    query = 'SELECT * FROM survey WHERE datestamp > UNIXEPOCH("now", "-60 day") ORDER BY datestamp'
+    try:
+        async with aiosqlite.connect('survey.db') as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(query)
+            rows = await cursor.fetchall()
+            await cursor.close()
+            return rows
+    except Exception as e:
+        print('Failed to get recent surveys:')
+        print(e)
+        return False
+
 async def check_user_answered(channel_id, message_id, user_id):
     query = '''
         SELECT response

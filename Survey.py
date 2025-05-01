@@ -45,11 +45,11 @@ class Survey(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        latest = await db.get_latest_survey()
-        if latest:
-            view = SurveyView(timeout=None, channel_id=latest['channel_id'])
-            view.message_id = latest['message_id']
-            self.bot.add_view(view, message_id=latest['message_id'])
+        surveys = await db.get_recent_surveys()
+        for surv in surveys:
+            view = SurveyView(timeout=None, channel_id=surv['channel_id'])
+            view.message_id = surv['message_id']
+            self.bot.add_view(view, message_id=surv['message_id'])
 
     @app_commands.command(name='create_survey', description='Create a satisfaction survey')
     async def create_survey(self, interaction: discord.Interaction, subject: str='MARVEL SNAP', color: str='blue'):
