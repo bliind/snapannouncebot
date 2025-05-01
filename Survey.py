@@ -45,7 +45,9 @@ class Survey(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        surveys = await db.get_recent_surveys()
+        after_date = datetime.datetime.now() - datetime.timedelta(days=60)
+        after_timestamp = int(round(after_date.timestamp()))
+        surveys = await db.get_recent_surveys(after_timestamp)
         for surv in surveys:
             view = SurveyView(timeout=None, channel_id=surv['channel_id'])
             view.message_id = surv['message_id']

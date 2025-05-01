@@ -86,12 +86,13 @@ async def get_latest_survey():
         print(e)
         return False
 
-async def get_recent_surveys():
-    query = 'SELECT * FROM survey WHERE datestamp > UNIXEPOCH("now", "-60 day") ORDER BY datestamp'
+async def get_recent_surveys(after):
+    query = 'SELECT * FROM survey WHERE datestamp > ? ORDER BY datestamp'
+    bind = (after,)
     try:
         async with aiosqlite.connect('survey.db') as db:
             db.row_factory = aiosqlite.Row
-            cursor = await db.execute(query)
+            cursor = await db.execute(query, bind)
             rows = await cursor.fetchall()
             await cursor.close()
             return rows
