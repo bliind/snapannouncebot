@@ -3,6 +3,7 @@ import json
 import os
 import datetime
 import announcedb
+import asyncio
 from discord import app_commands
 from discord.ext import commands
 from Survey import Survey
@@ -116,9 +117,10 @@ class MyClient(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        super().__init__(command_prefix='>', intents=intents)
+        intents.members = True
+        super().__init__(command_prefix='¤', intents=intents)
         self.synced = False
-    
+
     async def on_ready(self):
         print(f"{config.env.upper()} ANNOUNCEBOT is ready for duty")
         if not self.synced:
@@ -196,5 +198,36 @@ async def edit_announcement_command(interaction: discord.Interaction, message: d
             await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'No post selected'))
     else:
         await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'Cancelled'))
+
+async def support_post_reply(thread):
+    await asyncio.sleep(1)
+    if thread.parent.id in config.support_channels:
+        message = f'''
+            ## 👋 Hey there {thread.owner.mention}! Quick heads-up:
+
+            If you're reporting a **bug**, you're in the right place — feel free to post here and stick around in case we need more info.
+
+            But if you need **individual help** (like missing rewards or account issues), the fastest way to get support is through our official helpdesk:
+            ### 🛠️ How to contact support for an individual problem:
+            • **Mobile:** In-game, tap the ⚙️ icon in the top left → `Player Support` → `Chat with us` → Follow the prompts
+            • **Steam:** Same steps — just click instead of tap
+            • **Email:** support@marvelsnap.mail.helpshift.com
+            📎 Include your in-game name, dates, screenshots — anything that helps explain the issue.
+
+            ✅ **TL;DR:**  
+            • Bug reports? 👍 Post here in Discord and hang tight.
+            • Account issues? 🎫 Submit a ticket through support.
+        '''.replace(' '*12, '').strip()
+        embed = discord.Embed(
+            color=discord.Color.from_rgb(7, 237, 252),
+            description=message,
+        )
+        embed.set_footer(text='Thanks for helping us improve the game!', icon_url=thread.guild.icon.url)
+        await thread.send(thread.owner.mention, embed=embed)
+
+@bot.event
+async def on_thread_create(thread):
+    # auto support post reply
+    await support_post_reply(thread)
 
 bot.run(config.token)
