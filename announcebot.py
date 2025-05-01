@@ -211,7 +211,7 @@ async def support_post_reply(thread):
             ### 🛠️ How to contact support for an individual problem:
             • **Mobile:** In-game, tap the ⚙️ icon in the top left → `Player Support` → `Chat with us` → Follow the prompts
             • **Steam:** Same steps — just click instead of tap
-            • **Email:** support@marvelsnap.mail.helpshift.com
+            • **Email:** <support@marvelsnap.mail.helpshift.com>
             📎 Include your in-game name, dates, screenshots — anything that helps explain the issue.
 
             ✅ **TL;DR:**  
