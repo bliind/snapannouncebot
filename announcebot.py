@@ -7,6 +7,7 @@ import asyncio
 from discord import app_commands
 from discord.ext import commands
 from Survey import Survey
+from SupportMessageModal import SupportMessageModal
 
 ##
 class PostView(discord.ui.View):
@@ -152,13 +153,13 @@ async def post_announcement_command(interaction, message: discord.Message):
                 actual_content = message.content.replace(title, '').strip()
                 thread = await channel.create_thread(name=title, files=files, content=actual_content)
                 if thread:
-                    announcedb.add_post(channel.name, actual_content, thread.message.jump_url, int(round(thread.message.created_at.timestamp())))
+                    await announcedb.add_post(channel.name, actual_content, thread.message.jump_url, int(round(thread.message.created_at.timestamp())))
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=thread.message.jump_url))
                     await message.add_reaction("✅")
             else:
                 try:
                     sent = await channel.send(message.content, files=files)
-                    announcedb.add_post(channel.name, message.content, sent.jump_url, int(round(sent.created_at.timestamp())))
+                    await announcedb.add_post(channel.name, message.content, sent.jump_url, int(round(sent.created_at.timestamp())))
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=sent.jump_url))
                     await message.add_reaction("✅")
                 except Exception as e:
@@ -178,7 +179,7 @@ async def post_announcement_command(interaction, message: discord.Message):
 @bot.tree.context_menu(name='Edit Announcement', guild=discord.Object(id=config.server))
 async def edit_announcement_command(interaction: discord.Interaction, message: discord.Message):
     options = []
-    for post in announcedb.get_last_posts():
+    for post in await announcedb.get_last_posts():
         options.append(dotdict(post))
     view = EditView(options, timeout=30)
     await interaction.response.send_message(view=view)
@@ -186,7 +187,7 @@ async def edit_announcement_command(interaction: discord.Interaction, message: d
     if view.value:
         if view.select.selected:
             our_post = [o for o in options if o.link == view.select.selected][0]
-            announcedb.update_content(our_post.id, message.content)
+            await announcedb.update_content(our_post.id, message.content)
             link = view.select.selected.split('/')
             message_id = int(link.pop())
             channel_id = int(link.pop())
@@ -199,8 +200,21 @@ async def edit_announcement_command(interaction: discord.Interaction, message: d
     else:
         await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'Cancelled'))
 
+@bot.tree.command(name='update_support_message', description='Add an extra bit to the auto support message', guild=discord.Object(id=config.server))
+async def update_support_message(interaction: discord.Interaction):
+    old_message = await announcedb.get_support_message()
+    modal = SupportMessageModal(old_message)
+    await interaction.response.send_modal(modal)
+    await modal.wait()
+    if await announcedb.update_support_message(modal.new_message.value):
+        if modal.new_message.value == '':
+            await interaction.followup.send('Support message cleared!')
+        else:
+            await interaction.followup.send('Support message updated!')
+
 async def support_post_reply(thread):
     await asyncio.sleep(1)
+    extra_message = await announcedb.get_support_message()
     if thread.parent.id in config.support_channels:
         message = f'''
             ## 👋 Hey there {thread.owner.mention}! Quick heads-up:
@@ -218,6 +232,10 @@ async def support_post_reply(thread):
             • Bug reports? 👍 Post here in Discord and hang tight.
             • Account issues? 🎫 Submit a ticket through support.
         '''.replace(' '*12, '').strip()
+
+        if extra_message != '':
+            message += f'\n\u200B\n{extra_message}'
+
         embed = discord.Embed(
             color=discord.Color.from_rgb(7, 237, 252),
             description=message,

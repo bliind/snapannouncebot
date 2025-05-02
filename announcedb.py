@@ -1,41 +1,44 @@
-import sqlite3
+import aiosqlite
 import uuid
 
-def open_db():
-    return sqlite3.connect('announcebot.db')
-
-def add_post(channel: str, content: str, link: str, datestamp: str):
+database_file = 'announcebot.db'
+async def sql_query(query, bind=()):
     try:
-        conn = open_db()
-        cur = conn.cursor()
-        cur.execute('INSERT INTO posts (id, channel, content, link, datestamp) VALUES (?, ?, ?, ?, ?)', (str(uuid.uuid4()), channel, content, link, datestamp))
-        conn.commit()
-        conn.close()
-        return True
+        async with aiosqlite.connect(database_file) as db:
+            cursor = await db.execute(query, bind)
+            if query.lower().startswith('select'):
+                rows = await cursor.fetchall()
+                await cursor.close()
+                return rows
+            else:
+                await db.commit()
+                return True
     except Exception as e:
-        print('Failed to add post:')
+        print('sql query failed:')
         print(e)
+        print('query', query)
+        print('bind', bind)
         return False
 
-def update_content(rowid, content):
-    try:
-        conn = open_db()
-        cur = conn.cursor()
-        cur.execute('UPDATE posts SET content = ? WHERE rowid = ?', (content, rowid))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print('Failed to update post:')
-        print(e)
-        return False
+async def add_post(channel: str, content: str, link: str, datestamp: str):
+    query = '''
+        INSERT INTO posts
+        (id, channel, content, link, datestamp)
+        VALUES (?, ?, ?, ?, ?)
+    '''
+    bind = (str(uuid.uuid4()), channel, content, link, datestamp)
 
-def get_last_posts():
-    conn = open_db()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM posts ORDER BY rowid DESC LIMIT 5')
-    results = cur.fetchall()
-    conn.close()
+    return await sql_query(query, bind)
+
+async def update_content(id, content):
+    query = 'UPDATE posts SET content = ? WHERE id = ?'
+    bind = (content, id)
+
+    return await sql_query(query, bind)
+
+async def get_last_posts():
+    query = 'SELECT * FROM posts ORDER BY rowid DESC LIMIT 5'
+    results = await sql_query(query)
 
     out = []
     if results:
@@ -49,3 +52,14 @@ def get_last_posts():
             })
 
     return out
+
+async def get_support_message():
+    query = 'SELECT message FROM support_message'
+    results = await sql_query(query)
+    return results[0][0]
+
+async def update_support_message(new_message):
+    query = 'UPDATE support_message SET message = ?'
+    bind = (new_message,)
+
+    return await sql_query(query, bind)
