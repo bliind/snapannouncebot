@@ -213,7 +213,6 @@ async def update_support_message(interaction: discord.Interaction):
             await interaction.followup.send('Support message updated!')
 
 async def support_post_reply(thread):
-    await asyncio.sleep(1)
     extra_message = await announcedb.get_support_message()
     if thread.parent.id in config.support_channels:
         message = f'''
@@ -241,7 +240,16 @@ async def support_post_reply(thread):
             description=message,
         )
         embed.set_footer(text='Thanks for helping us improve the game!', icon_url=thread.guild.icon.url)
-        await thread.send(thread.owner.mention, embed=embed)
+
+        try:
+            await thread.send(thread.owner.mention, embed=embed)
+        except discord.errors.Forbidden as e:
+            if 'sent an initial message' in str(e):
+                await asyncio.sleep(1)
+                support_post_reply(thread)
+        except Exception as e:
+            print('Failed to post support reply:')
+            print(e)
 
 @bot.tree.command(name='post_support_message', description='Post the Support auto message in case the bot missed this thread.', guild=discord.Object(id=config.server))
 async def post_support_message(interaction: discord.Interaction):
