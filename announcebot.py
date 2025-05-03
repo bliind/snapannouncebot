@@ -243,6 +243,12 @@ async def support_post_reply(thread):
         embed.set_footer(text='Thanks for helping us improve the game!', icon_url=thread.guild.icon.url)
         await thread.send(thread.owner.mention, embed=embed)
 
+@bot.tree.command(name='post_support_message', description='Post the Support auto message in case the bot missed this thread.', guild=discord.Object(id=config.server))
+async def post_support_message(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    await support_post_reply(interaction.channel)
+    await interaction.delete_original_response()
+
 @bot.event
 async def on_thread_create(thread):
     # auto support post reply
