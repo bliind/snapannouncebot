@@ -246,7 +246,7 @@ async def support_post_reply(thread):
         except discord.errors.Forbidden as e:
             if 'sent an initial message' in str(e):
                 await asyncio.sleep(1)
-                support_post_reply(thread)
+                await support_post_reply(thread)
         except Exception as e:
             print('Failed to post support reply:')
             print(e)
