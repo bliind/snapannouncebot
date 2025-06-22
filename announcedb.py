@@ -37,7 +37,7 @@ async def update_content(id, content):
     return await sql_query(query, bind)
 
 async def get_last_posts():
-    query = 'SELECT * FROM posts ORDER BY rowid DESC LIMIT 5'
+    query = 'SELECT * FROM posts ORDER BY rowid DESC LIMIT 25'
     results = await sql_query(query)
 
     out = []
