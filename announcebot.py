@@ -137,7 +137,12 @@ bot.setup_hook = setup_hook
 @bot.tree.context_menu(name='Post Announcement', guild=discord.Object(id=config.server))
 async def post_announcement_command(interaction, message: discord.Message):
     view = PostView(timeout=30)
-    await interaction.response.send_message(message.content.splitlines()[0] + '...', view=view)
+    try:
+        title = message.content.splitlines()[0]
+    except IndexError:
+        title = ''
+
+    await interaction.response.send_message(title + '...', view=view)
     await view.wait()
     if view.value:
         # Post it! was chosen
@@ -149,17 +154,25 @@ async def post_announcement_command(interaction, message: discord.Message):
                 files.append(await file.to_file())
 
             if channel.type == discord.ChannelType.forum:
-                title = message.content.splitlines()[0]
+                if title == '':
+                    error_embed = discord.Embed(
+                        color=discord.Color.red(),
+                        title='Error',
+                        description='Posting to a forum requires a title in the message'
+                    )
+                    await interaction.edit_original_response(content=None, view=None, embed=error_embed)
+                    return
+
                 actual_content = message.content.replace(title, '').strip()
                 thread = await channel.create_thread(name=title, files=files, content=actual_content)
                 if thread:
-                    await announcedb.add_post(channel.name, actual_content, thread.message.jump_url, int(round(thread.message.created_at.timestamp())))
+                    await announcedb.add_post(channel.name, actual_content, thread.message.jump_url, str(int(round(thread.message.created_at.timestamp()))))
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=thread.message.jump_url))
                     await message.add_reaction("✅")
             else:
                 try:
                     sent = await channel.send(message.content, files=files)
-                    await announcedb.add_post(channel.name, message.content, sent.jump_url, int(round(sent.created_at.timestamp())))
+                    await announcedb.add_post(channel.name, message.content, sent.jump_url, str(int(round(sent.created_at.timestamp()))))
                     await interaction.edit_original_response(content=None, view=None, embed=discord.Embed(description=sent.jump_url))
                     await message.add_reaction("✅")
                 except Exception as e:
@@ -196,9 +209,9 @@ async def edit_announcement_command(interaction: discord.Interaction, message: d
             await msg.edit(content=message.content)
             await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'Edited {view.select.selected}'))
         else:
-            await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'No post selected'))
+            await interaction.edit_original_response(view=None, embed=discord.Embed(description='No post selected'))
     else:
-        await interaction.edit_original_response(view=None, embed=discord.Embed(description=f'Cancelled'))
+        await interaction.edit_original_response(view=None, embed=discord.Embed(description='Cancelled'))
 
 @bot.tree.command(name='update_support_message', description='Add an extra bit to the auto support message', guild=discord.Object(id=config.server))
 async def update_support_message(interaction: discord.Interaction):
@@ -227,7 +240,7 @@ async def support_post_reply(thread):
             • **Email:** <support@marvelsnap.mail.helpshift.com>
             📎 Include your in-game name, dates, screenshots — anything that helps explain the issue.
 
-            ✅ **TL;DR:**  
+            ✅ **TL;DR:**
             • Bug reports? 👍 Post here in Discord and hang tight.
             • Account issues? 🎫 Submit a ticket through support.
         '''.replace(' '*12, '').strip()
