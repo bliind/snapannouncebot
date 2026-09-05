@@ -117,8 +117,8 @@ load_config()
 class MyClient(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
-        intents.message_content = True
-        intents.members = True
+        # intents.message_content = True
+        # intents.members = True
         super().__init__(command_prefix='¤', intents=intents)
         self.synced = False
 
@@ -229,7 +229,7 @@ async def support_post_reply(thread):
     extra_message = await announcedb.get_support_message()
     if thread.parent.id in config.support_channels:
         message = f'''
-            ## 👋 Hey there {thread.owner.mention}! Quick heads-up:
+            ## 👋 Hey there! Quick heads-up:
 
             If you're reporting a **bug**, you're in the right place — feel free to post here and stick around in case we need more info.
 
@@ -255,14 +255,18 @@ async def support_post_reply(thread):
         embed.set_footer(text='Thanks for helping us improve the game!', icon_url=thread.guild.icon.url)
 
         try:
-            await thread.send(thread.owner.mention, embed=embed)
-        except discord.errors.Forbidden as e:
-            if 'sent an initial message' in str(e):
-                await asyncio.sleep(1)
-                await support_post_reply(thread)
-        except Exception as e:
-            print('Failed to post support reply:')
-            print(e)
+            opening_message = [m async for m in thread.history(limit=1, oldest_first=True)][0]
+            await opening_message.reply(embed=embed)
+        except IndexError:
+            try:
+                await thread.send( embed=embed)
+            except discord.errors.Forbidden as e:
+                if 'sent an initial message' in str(e):
+                    await asyncio.sleep(1)
+                    await support_post_reply(thread)
+            except Exception as e:
+                print('Failed to post support reply:')
+                print(e)
 
 @bot.tree.command(name='post_support_message', description='Post the Support auto message in case the bot missed this thread.', guild=discord.Object(id=config.server))
 async def post_support_message(interaction: discord.Interaction):
